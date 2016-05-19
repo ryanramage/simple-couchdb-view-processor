@@ -1,0 +1,32 @@
+{
+  "name": "simple-couchdb-view-processor",
+  "version": "1.0.0",
+  "description": "Process documents in a couchdb view with the goal to remove them from the view",
+  "bin": "./bin/cli.js",
+  "main": "./lib/index.js",
+  "dependencies": {
+    "async": "^2.0.0-rc.5",
+    "joi": "^8.1.0",
+    "jsonfilter": "^1.1.2",
+    "ndjson": "^1.4.3",
+    "request": "^2.72.0",
+    "through2": "^2.0.1",
+    "txn": "^1.1.2"
+  },
+  "devDependencies": {
+    "standard": "^4.5.4",
+    "tap": "^0.4.12",
+    "tape": "^2.14.0"
+  },
+  "scripts": {
+    "test": "standard && ./node_modules/.bin/tap test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/ryanramage/simple-couchdb-view-processor.git"
+  },
+  "bugs": {
+    "url": "http://github.com/ryanramage/simple-couchdb-view-processor/issues"
+  },
+  "homepage": "http://github.com/ryanramage/simple-couchdb-view-processor"
+}
