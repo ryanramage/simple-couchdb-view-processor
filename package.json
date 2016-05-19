@@ -2,10 +2,10 @@
   "name": "simple-couchdb-view-processor",
   "version": "1.0.0",
   "description": "Process documents in a couchdb view with the goal to remove them from the view",
-  "bin": "./bin/cli.js",
   "main": "./lib/index.js",
   "dependencies": {
     "async": "^2.0.0-rc.5",
+    "dev-null": "^0.1.1",
     "joi": "^8.1.0",
     "jsonfilter": "^1.1.2",
     "ndjson": "^1.4.3",

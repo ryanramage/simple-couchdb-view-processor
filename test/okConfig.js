@@ -12,3 +12,9 @@ test('name and view pass', t => {
   t.error(ok.error)
   t.end()
 })
+
+test('unknown keys are ok', t => {
+  var ok = okConfig({name: 'a', view: 'b', random: 'yes'})
+  t.error(ok.error)
+  t.end()
+})
