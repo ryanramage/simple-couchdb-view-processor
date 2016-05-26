@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 var path = require('path')
-if (process.argv.length != 5) {
+if (process.argv.length < 4) {
   console.log('usage: simple-couchdb-view-processor config.js worker.js [init]')
   process.exit()
 }
