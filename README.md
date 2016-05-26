@@ -12,38 +12,46 @@ replacement. Instead of operating on the changes feed, this module
  - Quits when the last element is processed (drain is called)
 
 ```
-npm install simple-couchdb-view-processor
+npm install simple-couchdb-view-processor -g
 ```
 
 ## Usage
 
 ``` js
-var simple-couchdb-view-processor = require('simple-couchdb-view-processor')
+simple-couchdb-view-processor configfile.js workerfile.js [init]
 ```
+the optional 'init' switch is used to put the design doc into couchdb.
 
-## Defining a worker
+
+## Defining a workerfile.js
 
 ```javascript
-var createWorker = require('simple-couchdb-view-processor').createWorker;
+var jsonist = require('jsonist')
 
-module.exports = createWorker(function (config) {
-  return {
+module.exports = function (config) {
+  var api = {}
+  api.ignored = function (doc) {
+    if (!doc['Listing Agent ID']) return true
+    return false
+  }
 
-    ignored: function (doc) {
-      return doc._id[0] === '_';
-    },
+  api.migrated = function (doc) {
+    if (!doc.ListingAgent) return false
+    return true
+  }
 
-    migrated: function (doc) {
-      return doc.new_property;
-    },
+  api.migrate = function (doc, callback) {
+    var agent_doc_url = config.agent_db + '/' + doc['Listing Agent ID']
+    jsonist.get(agent_doc_url, (err, agent_doc) => {
+      if (err) return callback(err)
+      if (agent_doc.error) return callback(agent_doc) // its a tricky one
+      doc.ListingAgent = agent_doc
+      callback(null, doc)
+    })
+  }
+  return api
+}
 
-    migrate: function (doc, callback) {
-      doc.new_property = 'wheee';
-      callback(null, doc);
-    }
-
-  };
-});
 ```
 
 ### ignored(doc)
@@ -80,31 +88,26 @@ This function will always be called from Node.js, so you can use
 surrounding scope in the module and require other Node modules.
 
 
-## Starting a worker
+## configfile.js
+
+This sets up the needed configuration to point to the correct view, and set other options described below.
 
 ```javascript
-// require the worker definition (see above section)
-var myworker = require('myworker');
+var rc = require('rc')
+var config_agent = rc('ndjson-to-couchdb')
+var config_listings = rc('retssync')
 
-var config = {
-  name: 'My Worker',
-  view: 'http://localhost:5984/idx-edm-v5/_design/worker:edm-gifimages/_view/not_migrated?reduce=false',
-  concurrency: 4
-};
-
-// start the worker
-var w = myworker.start(config, function () {
-  console.log('worker completed queue')
-});
-
-
+module.exports = {
+  name: 'agent-info',
+  view: config_listings.couch + '/idx-' + config_listings.name + '/_design/worker:agent-info/_view/not_migrated?reduce=false',
+  agent_db: config_agent.url
+}
 ```
 
 ### Common configuration options
 
 Your worker can use additional configuration properties as required (for
-API keys etc), but all workers using `couch-worker` have the following
-options available.
+API keys etc), but all workers have the following options available.
 
 * __name__ (required) - *String* - The unique name for this worker instance
 * __view__ (required) *String* - The database view URL (with credentials) to
