@@ -3,18 +3,31 @@ var url = require('url')
 var path = require('path')
 var async = require('async')
 var prompt = require('prompt')
-var ensureDDoc = require('../lib/ensureDesignDoc')
+var load = require('../lib/loadWorker')
 var ensureDB = require('../lib/ensureDB')
+var ensureDDoc = require('../lib/ensureDesignDoc')
 
 if (process.argv.length < 4) {
   console.log('usage: simple-couchdb-view-processor config.js worker.js [init]')
   process.exit()
 }
 
-var user_config = require(path.resolve('.', process.argv[2]))
 var worker = require(path.resolve('.', process.argv[3]))
-if (process.argv[4] === 'init') init()
-else processView()
+var user_config = require(path.resolve('.', process.argv[2]))
+if (typeof user_config === 'function') {
+  user_config((err, loaded_config) => {
+    if (err) {
+      console.log('Error setting up config', err)
+      process.exit(0)
+    }
+    user_config = loaded_config
+    if (process.argv[4] === 'init') init()
+    else processView()
+  })
+} else if (typeof user_config === 'object') {
+  if (process.argv[4] === 'init') init()
+  else processView()
+}
 
 var creds = null
 var do_prompt = false
@@ -34,7 +47,8 @@ function initLoop (user_config, creds, cb, fromBefore) {
         return cb('unauthorized')
       }
       if (err || (info && info.error)) return cb(err)
-      ensureDDoc(user_config, worker(user_config), (err, result) => {
+      var w = load.loadWorker(worker, user_config)
+      ensureDDoc(user_config, w, (err, result) => {
         if (result && result.error === 'unauthorized') {
           do_prompt = true
           return cb('unauthorized')
