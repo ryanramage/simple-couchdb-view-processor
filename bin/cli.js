@@ -82,8 +82,9 @@ function processView () {
   var q = require('../lib').createWorker(worker).start(user_config)
   setInterval(function () {
     var howMany = q.length()
-    console.log(howMany, 'tasks left')
-    if (q.length() === 0) {
+    var running = q.running()
+    console.log(howMany, 'tasks left, ', running, 'running tasks')
+    if (q.length() === 0 && running === 0) {
       console.log('Exiting...')
       process.exit()
     }
