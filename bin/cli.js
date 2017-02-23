@@ -80,13 +80,24 @@ function initLoop (user_config, creds, cb, fromBefore) {
 
 function processView () {
   var q = require('../lib').createWorker(worker).start(user_config)
-  setInterval(function () {
-    var howMany = q.length()
+  var howMany = 0
+  var _interval = setInterval(function () {
+    if (q.paused) return
     var running = q.running()
-    console.log(howMany, 'tasks left, ', running, 'running tasks')
+    if (howMany !== q.length()) {
+      console.log(q.length(), 'tasks left, ', running, 'running tasks')
+    }
+    howMany = q.length()
     if (q.length() === 0 && running === 0) {
       console.log('Exiting...')
       process.exit()
     }
   }, 1000)
+  process.on('SIGINT', () => {
+    console.log('Received SIGINT. Exiting')
+    clearInterval(_interval)
+    q.kill()
+    process.exit()
+  })
+
 }
