@@ -66,6 +66,7 @@ function initLoop (user_config, creds, cb, fromBefore) {
   }
   prompt.start()
   prompt.get(['username', 'password'], (err, result) => {
+    if (err) console.log(err)
     var _url = url.parse(user_config.view)
     creds = {
       username: result.username,
@@ -79,24 +80,32 @@ function initLoop (user_config, creds, cb, fromBefore) {
 }
 
 function processView () {
-  var q = require('../lib').createWorker(worker).start(user_config)
-  var howMany = 0
-  var _interval = setInterval(function () {
-    if (q.paused) return
-    var running = q.running()
-    if (howMany !== q.length()) {
-      console.log(q.length(), 'tasks left, ', running, 'running tasks')
+  let _q = null
+  let _interval = null
+  require('../lib').createWorker(worker).start(user_config, (err, q) => {
+    if (err) {
+      console.log(err)
+      process.exit(1)
     }
-    howMany = q.length()
-    if (q.length() === 0 && running === 0) {
-      console.log('Exiting...')
-      process.exit()
-    }
-  }, 1000)
+    _q = q
+    var howMany = 0
+    _interval = setInterval(function () {
+      if (q.paused) return
+      var running = q.running()
+      if (howMany !== q.length()) {
+        console.log(q.length(), 'tasks left, ', running, 'running tasks')
+      }
+      howMany = q.length()
+      if (q.length() === 0 && running === 0) {
+        console.log('Exiting...')
+        process.exit()
+      }
+    }, 1000)
+  })
   process.on('SIGINT', () => {
     console.log('Received SIGINT. Exiting')
-    clearInterval(_interval)
-    q.kill()
+    if (_interval) clearInterval(_interval)
+    if (_q) _q.kill()
     process.exit()
   })
 
