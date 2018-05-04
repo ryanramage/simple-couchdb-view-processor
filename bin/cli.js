@@ -3,6 +3,7 @@ var url = require('url')
 var path = require('path')
 var async = require('async')
 var prompt = require('prompt')
+var exeunt = require('exeunt')
 var load = require('../lib/loadWorker')
 var ensureDB = require('../lib/ensureDB')
 var ensureDDoc = require('../lib/ensureDesignDoc')
@@ -98,7 +99,9 @@ function processView () {
       howMany = q.length()
       if (q.length() === 0 && running === 0) {
         console.log('Exiting...')
-        process.exit()
+        clearInterval(_interval)
+        q.kill()
+        exeunt(0)
       }
     }, 1000)
   })
