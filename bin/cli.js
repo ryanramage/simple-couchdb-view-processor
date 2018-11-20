@@ -2,19 +2,32 @@
 var url = require('url')
 var path = require('path')
 var async = require('async')
+var config = require('rc')('simplecouchdbviewprocessor', {})
 var prompt = require('prompt')
 var exeunt = require('exeunt')
+var getPort = require('get-port')
+var bucket = require('swarm-bucket')
+var swarm = require('discovery-swarm')
 var load = require('../lib/loadWorker')
 var ensureDB = require('../lib/ensureDB')
 var ensureDDoc = require('../lib/ensureDesignDoc')
 
-if (process.argv.length < 4) {
-  console.log('usage: simple-couchdb-view-processor config.js worker.js [init]')
+
+let configPath = config._[0]
+let workerPath = config._[1]
+
+if (!configPath || !workerPath) {
+  console.log('usage: ')
+  console.log('  init the view: simple-couchdb-view-processor config.js worker.js init')
+  console.log('  run simple   : simple-couchdb-view-processor config.js worker.js')
+  console.log('  run cluster  : simple-couchdb-view-processor config.js worker.js --cluster=someclusterid')
   process.exit()
 }
 
-var worker = require(path.resolve('.', process.argv[3]))
-var user_config = require(path.resolve('.', process.argv[2]))
+
+// do the setup all tasks need
+var worker = require(path.resolve('.', workerPath))
+var user_config = require(path.resolve('.', configPath))
 if (typeof user_config === 'function') {
   user_config((err, loaded_config) => {
     if (err) {
@@ -23,11 +36,11 @@ if (typeof user_config === 'function') {
     }
     user_config = loaded_config
     if (process.argv[4] === 'init') init()
-    else processView()
+    else start()
   })
 } else if (typeof user_config === 'object') {
   if (process.argv[4] === 'init') init()
-  else processView()
+  else start()
 }
 
 var creds = null
@@ -80,9 +93,33 @@ function initLoop (user_config, creds, cb, fromBefore) {
   })
 }
 
+function start () {
+  if (!config.cluster) return processView()
+  if (config.port) return clusterMode(config.port, config.cluster)
+  getPort().then(port => clusterMode(port, config.cluster))
+}
+
+let sw = null
+let _q = null
+let _interval = null
+
+function clusterMode (port, swarmId) {
+  console.log('starting cluster mode', port, swarmId)
+  sw = swarm()
+  sw.listen(port)
+  sw.join(swarmId)
+  const b = bucket(sw)
+  b.on('change', function (responsibility) {
+    if (_interval) clearInterval(_interval)
+    if (_q) _q.kill()
+    if (responsibility.length === 1) return console.log('just do vanila')
+    user_config.bucket = responsibility.range
+    processView()
+  })
+  processView()
+}
+
 function processView () {
-  let _q = null
-  let _interval = null
   require('../lib').createWorker(worker).start(user_config, (err, q) => {
     if (err) {
       console.log(err)
@@ -109,7 +146,7 @@ function processView () {
     console.log('Received SIGINT. Exiting')
     if (_interval) clearInterval(_interval)
     if (_q) _q.kill()
+    if (sw) sw.leave(config.cluster)
     process.exit()
   })
-
 }
