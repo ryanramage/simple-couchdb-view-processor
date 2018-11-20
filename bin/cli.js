@@ -116,7 +116,7 @@ function clusterMode (port, swarmId) {
     user_config.bucket = responsibility.range
     processView()
   })
-  processView()
+  // processView()
 }
 
 function processView () {
