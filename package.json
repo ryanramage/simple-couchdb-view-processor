@@ -1,6 +1,6 @@
 {
   "name": "simple-couchdb-view-processor",
-  "version": "5.0.1",
+  "version": "5.1.0",
   "description": "Process documents in a couchdb view with the goal to remove them from the view",
   "main": "./lib/index.js",
   "bin": "bin/cli.js",
